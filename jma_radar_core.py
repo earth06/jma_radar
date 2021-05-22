@@ -38,6 +38,7 @@ def unpack_runlength(data,nx,ny,length,aa,VMAX,RR):
         n1=int(data[cur_pos+1])
         n=0
         if (n1 > VMAX):
+            n=check_next(data,cur_pos+1,n,length,VMAX)
             total_num=0
             for nn in range(n+1):#1個多くしないとダメ
                 total_num+=int((int(data[cur_pos+1+nn]) - VMAX-1)*(aa**nn))

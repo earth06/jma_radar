@@ -1,5 +1,6 @@
 import xarray as xr
 import numpy as np
+import pandas as pd
 import struct
 import sys
 from numba import jit
@@ -126,7 +127,7 @@ class JMA_Radar():
         ds : xarray.Dataset
         """
         values={"rr":(["time","lat","lon"],self.values.reshape((1,self.ny,self.nx)),{"units":"[mm/hr]","long name":"precipitation intensity"})}
-        coords={"time":self.time,
+        coords={"time":pd.to_datetime([self.time],format="%Y-%m-%dT%H:%M:%S"),
                     "lat":(("lat",self.lat,{"units":"degrees_north"})),
                     "lon":(("lon",self.lon,{"units":"degrees_east"}))
         }
