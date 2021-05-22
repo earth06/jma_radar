@@ -42,7 +42,10 @@ class JMA_Radar():
         ----------
         filepath :str
             file path of JMA Radar GPV
-
+        
+        Returns
+        -----------
+        jradar : JMA_Radar
         """
 
         with open(filepath,"br") as f:
@@ -101,6 +104,8 @@ class JMA_Radar():
         y0,ye,dy : float
             begin,end,interval of latitude(degrees)
         """
+        self.nx=nx
+        self.ny=ny
         tmp=rr.reshape((ny,nx))[::-1,:]
         tmp[tmp<0]=np.nan
         self.values=tmp
@@ -115,6 +120,20 @@ class JMA_Radar():
         return xx,yy
 
     def to_xarray(self):
-        pass
+        """
+        Returns
+        --------
+        ds : xarray.Dataset
+        """
+        values={"rr":(["time","lat","lon"],self.values.reshape((1,self.ny,self.nx)),{"units":"[mm/hr]","long name":"precipitation intensity"})}
+        coords={"time":self.time,
+                    "lat":(("lat",self.lat,{"units":"degrees_north"})),
+                    "lon":(("lon",self.lon,{"units":"degrees_east"}))
+        }
+        ds=xr.Dataset(
+            values,
+            coords
+        )
+        return ds
 
 
