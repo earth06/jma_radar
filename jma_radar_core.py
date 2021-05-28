@@ -1,7 +1,4 @@
-import xarray as xr
 import numpy as np
-import struct
-import sys
 from numba import jit
 
 def decode_int32(buf,begin,swap=False):

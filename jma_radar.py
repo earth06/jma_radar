@@ -1,8 +1,6 @@
 import xarray as xr
 import numpy as np
 import pandas as pd
-import struct
-import sys
 from numba import jit
 from jma_radar_core import decode_int16,decode_int32,unpack_runlength
 
