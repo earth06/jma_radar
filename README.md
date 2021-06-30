@@ -21,7 +21,7 @@ ax.set_extent([128,145,30,45])
 
 
 
-![sample](C:\Users\kjkrs\OneDrive\Document\GitHub\jma_radar\sample.png)
+![sample](./sample.png)
 
 ## Requirement
 
