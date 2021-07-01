@@ -33,7 +33,7 @@ class JMA_Radar():
         convert this instance into xarray.Dataset
     """
     @classmethod
-    def read_radar(self,filepath):
+    def read_file(self,filepath):
         """
         read grib2 file of JMA Radar GPV
 
@@ -85,6 +85,8 @@ class JMA_Radar():
             data=np.frombuffer(f.read(length),dtype=">u1")
             aa=(2**Vbit-1-VMAX)
             rrain=unpack_runlength(data,nx,ny,length,aa,VMAX,RR)
+            rrain=rrain.reshape((ny,nx))[::-1,:]
+            rrain[rrain<0]=np.nan
             jradar=JMA_Radar(rrain,nx,ny,timestamp,x0,xe,dx,y0,ye,dy)
             return jradar
 
@@ -105,9 +107,7 @@ class JMA_Radar():
         """
         self.nx=nx
         self.ny=ny
-        tmp=rr.reshape((ny,nx))[::-1,:]
-        tmp[tmp<0]=np.nan
-        self.values=tmp
+        self.values=rr
         self.time=timestamp
         self.lat=np.linspace(y0,ye,ny)
         self.lon=np.linspace(x0,xe,nx)
@@ -135,5 +135,3 @@ class JMA_Radar():
             coords
         )
         return ds
-
-
