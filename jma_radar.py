@@ -129,6 +129,7 @@ class JMA_Radar():
                     "lat":(("lat",self.lat,{"units":"degrees_north"})),
                     "lon":(("lon",self.lon,{"units":"degrees_east"}))
         }
+        attrs={"title":"JMA precipitation intensity","timezone":"UTC"}
         ds=xr.Dataset(
             values,
             coords
