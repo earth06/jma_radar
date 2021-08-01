@@ -90,7 +90,7 @@ class JMA_Radar():
             jradar=JMA_Radar(rrain,nx,ny,timestamp,x0,xe,dx,y0,ye,dy)
             return jradar
 
-    def __init__(self,rr,nx,ny,timestamp,x0,xe,dx,y0,ye,dy):
+    def __init__(self,rr,nx,ny,timestamp,x0,xe,dx,y0,ye,dy,RR):
         """
         Parameters
         -----------
@@ -113,6 +113,7 @@ class JMA_Radar():
         self.lon=np.linspace(x0,xe,nx)
         self.dx=dx
         self.dy=dy
+        self.RR=RR
 
     def latlon(self):
         xx,yy=np.meshgrid(self.lon,self.lat)

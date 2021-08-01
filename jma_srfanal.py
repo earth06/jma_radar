@@ -49,5 +49,5 @@ class JMA_SRFANAL(JMA_Radar):
             rrain=unpack_runlength(data,nx,ny,length7,aa,VMAX,RR)
             rrain=rrain.reshape((ny,nx))[::-1,:]
             rrain[rrain<0]=np.nan
-        srfanal=JMA_SRFANAL(rrain,nx,ny,timestamp,x0,xe,dx,y0,ye,dy)
+        srfanal=JMA_SRFANAL(rrain,nx,ny,timestamp,x0,xe,dx,y0,ye,dy,RR)
         return srfanal

@@ -44,7 +44,7 @@ def unpack_runlength(data,nx,ny,length,aa,VMAX,RR):
                 if d1==0:
                     rrain[ij+m]=-999.9
                 else:
-                    rrain[ij+m]=RR[d1]
+                    rrain[ij+m]=RR[d1-1]
             ij+=total_num
             cur_pos+=(n+2)
         else:

@@ -57,12 +57,13 @@ class JMA_SRF():
                 aa=(2**Vbit -1-VMAX)
                 rrain=unpack_runlength(data,nx,ny,length7,aa,VMAX,RR)
                 values[ih,:,:]=rrain.reshape((ny,nx))[::-1,:]
-            jmasrf=JMA_SRF(values,nx,ny,timestamp,x0,xe,dx,y0,ye,dy)
+            jmasrf=JMA_SRF(values,nx,ny,timestamp,x0,xe,dx,y0,ye,dy,RR)
         return jmasrf
     
-    def __init__(self,values,nx,ny,timestamp,x0,xe,dx,y0,ye,dy):
+    def __init__(self,values,nx,ny,timestamp,x0,xe,dx,y0,ye,dy,RR):
         self.nx=nx
         self.ny=ny
+        self.RR=RR
         values[values==-999.9]=np.nan
         self.values=values
         self.time=pd.to_datetime(timestamp)
