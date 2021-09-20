@@ -1,0 +1,95 @@
+{
+    "GSM":{
+        "SFC":{
+            "pmsl":{
+                "name":"Pressure reduced to MSL",
+                "namekey":"name",
+                "units":"Pa"
+            },
+            "ps":{
+                "name":"Surface pressure",
+                "namekey":"name",
+                "units":"Pa"
+            },
+            "u10":{
+                "name":"10 metre U wind component",
+                "namekey":"name",
+                "units":"m/s"
+            },
+            "v10":{
+                "name":"10 metre V wind component",
+                "namekey":"name",
+                "units":"m/s"
+            },
+            "T2m":{
+                "name":"2 metre temperature",
+                "namekey":"name",
+                "units":"kelvin"
+            },
+            "rh2m":{
+                "name":"2 metre relative humidity",
+                "namekey":"name",
+                "units":"%"
+            },
+            "Low_cloud_cover":{
+                "name":"Low cloud cover",
+                "namekey":"parameterName",
+                "units":"%"
+            },
+            "Medium_cloud_cover":{
+                "name":"Medium cloud cover",
+                "namekey":"parametername",
+                "units":"%"
+            },
+            "High_cloud_cover":{
+                "name":"High cloud cover",
+                "namekey":"parameterName",
+                "units":"%"
+            },
+            "Total_cloud_cover":{
+                "name":"Total cloud cover",
+                "namekey":"parameterName",
+                "units":"%"
+            },
+            "precip":{
+                "name":"Total precipitation",
+                "namekey":"parameterName",
+                "units":"kg m**-2"
+            }
+        },
+
+        "PLEV":{
+            "hgt":{
+                "name":"Geopotential Height",
+                "namekey":"name",
+                "units":"gpm"
+            },
+            "u":{
+                "name":"U component of wind",
+                "namekey":"name",
+                "units":"m/s"
+            },
+            "v":{
+                "name":"V component of wind",
+                "namekey":"name",
+                "units":"m/s"
+            },
+            "T":{
+                "name":"Temperature",
+                "namekey":"parameterName",
+                "units":"kelvin"
+            },
+            "w":{
+                "name":"Vertical velocity",
+                "namekey":"name",
+                "units":"Pa s**-1"
+            },
+            "rh":{
+                "name":"Relative humidity",
+                "namekey":"parameterName",
+                "units":"%"
+            }        
+        },
+        "PLEVELS":[1000, 925, 850, 700, 500, 300, 250, 200, 150]
+    }
+}
