@@ -132,6 +132,10 @@ class Wheather_map():
                 "level1":np.arange(1000-200,1000+201,4),
                 "level2":np.arange(1000-200,1000+201,20),
                 "level3":np.arange(1000-200,1000+201,40)
+            },
+            "850hPa_w_T_750hPa_omega":{
+                "level1":np.arange(-60, 40, 3),
+                "level2":np.arange(-120,121,20)
             }
         }
         self.Tlevels={
@@ -266,7 +270,7 @@ class Wheather_map():
                     ,levels=self.levels["500hPa"]["level2"],colors="k",linewidths=3)
         ax.clabel(cs,cs.levels[::2])
         ax.clabel(cs2,[5100,5700,6300])
-        hatches=["|"]*6+[None]*5
+        hatches=["||"]*6+[None]*5
         volevels=np.arange(-200,200.1,40)
         cs3=ax.contourf(ds["lon"],ds["lat"],ds["vo"].sel(level=lev)*1e6
                     ,transform=ccrs.PlateCarree()
@@ -300,7 +304,34 @@ class Wheather_map():
         #等降水量線
         cs3=ax.contourf(ds["lon"],ds["lat"],ds["precip"],transform=ccrs.PlateCarree(),
                     levels=[1,10,20,30,40,50],extend="max",linestyles="dashed",cmap=cmap)
+        return fig,ax
 
+    def plot_850hPa_T_wind_700hPa_omega(self,ds,cmap="none"):
+        fig=plt.figure(figsize=self.figsize)
+        ax=fig.add_subplot(1,1,1,projection=ccrs.NorthPolarStereo(central_longitude=140))
+        ax.gridlines(draw_labels=True,xlocs=plt.MultipleLocator(10),ylocs=plt.MultipleLocator(10))
+        ax.coastlines(resolution="50m")
+        ax.set_extent([90,170,10,55],crs=ccrs.PlateCarree())
+
+        #850hPa気温
+        cs=ax.contour(ds["lon"],ds["lat"],ds["T"].sel(level=850)-273.15
+               ,transform=ccrs.PlateCarree(),colors="k"
+               ,levels=self.levels["850hPa_w_T_750hPa_omega"]["level1"])
+        ax.clabel(cs,cs.levels[::2])
+        #850hPa矢羽根
+        ax.barbs(ds["lon"],ds["lat"],ds["u"].sel(level=850).values/0.51,ds["v"].sel(level=850).values/0.51
+        ,length=6,regrid_shape=12,transform=ccrs.PlateCarree())
+
+        #750hPa鉛直p速度ω
+
+        hatches=["||"]*6+[None]*7
+        linestyles=["dashed"]*6 + ["solid"]*7
+        cs4=ax.contourf(ds["lon"],ds["lat"],ds["vp"].sel(level=700)
+               ,transform=ccrs.PlateCarree(),colors="none"#cmap="bwr"
+               ,levels=np.arange(-120,121,20),hatches=hatches,linestyles=linestyles)
+        cs4_2=ax.contour(ds["lon"],ds["lat"],ds["vp"].sel(level=700)
+               ,transform=ccrs.PlateCarree(),colors="k"#cmap="bwr"
+               ,levels=np.arange(-120,121,20),linestyles=linestyles)
         return fig,ax
 
 
