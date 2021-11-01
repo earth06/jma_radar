@@ -87,7 +87,7 @@ class JMA_Radar():
             rrain=unpack_runlength(data,nx,ny,length,aa,VMAX,RR)
             rrain=rrain.reshape((ny,nx))[::-1,:]
             rrain[rrain<0]=np.nan
-            jradar=JMA_Radar(rrain,nx,ny,timestamp,x0,xe,dx,y0,ye,dy)
+            jradar=JMA_Radar(rrain,nx,ny,timestamp,x0,xe,dx,y0,ye,dy,RR)
             return jradar
 
     def __init__(self,rr,nx,ny,timestamp,x0,xe,dx,y0,ye,dy,RR):

@@ -11,6 +11,7 @@ from metpy.units import units
 import json
 import pathlib
 import sys
+import scipy.ndimage as ndimage
 sys.path.append(pathlib.Path(__file__).resolve().parent)
 import custom_colormap
 
@@ -44,76 +45,106 @@ class GSM_global():
         self.PLEV_CONFIG = config["GSM"]["PLEV"]
         self.plevels = config["GSM"]["PLEVELS"]
 
-    def read_sfc(self, file, product_type="ANAL", crip="Asia"):
+    def read_sfc(self, file, product_type="ANAL", crip="Asia",timestep=[0]):
+        """
+
+        Parameters
+        -----------
+        file : str
+        product_type : str
+            "ANAL" or "FCT"
+        crip : str:
+        timestep : list
+            if product_type="ANAL" then timestamp=[0]
+            else timestampe=[1,2,3....]
+        """
         gsm = pygrib.open(file)
-        data = {}
         param_names = list(self.SFC_CONFIG.keys())
         if product_type == "ANAL":
             param_names.remove("precip")
-        for key in param_names:
-            namekey = self.SFC_CONFIG[key]["namekey"]
-            name = self.SFC_CONFIG[key]["name"]
-            if namekey == "name":
-                dat = gsm.select(name=name)[0]
-            elif namekey == "parameterName":
-                dat = gsm.select(parameterName=name)[0]
-            data[key] = (["lat", "lon"], dat.values,
-                         {"title": self.SFC_CONFIG[key]["name"],
-                          "units": self.SFC_CONFIG[key]["units"]})
-        lat, lon = dat.latlons()
-        lat = lat[:, 0]
-        lon = lon[0, :]
-        coords = {
-            "lat": (("lat", lat, {"units": "degrees_north"})),
-            "lon": (("lon", lon, {"units": "degrees_east"}))
-        }
-        ds = xr.Dataset(data, coords)
-        if type(crip) is tuple:
-            lon1, lon2, lat1, lat2 = crip
-            ds = ds.sel(lon=slice(lon1, lon2), lat=slice(lat1, lat2))
-        elif crip == "Asia":
-            ds = ds.sel(lat=slice(70, 0), lon=slice(60, 210))
-        gsm.close()
-        return ds
-
-    def read_plev(self, file, crip="Asia"):
-        gsm = pygrib.open(file)
-        data = {}
-        param_names = list(self.PLEV_CONFIG.keys())
-        for key in param_names:
-            namekey = self.PLEV_CONFIG[key]["namekey"]
-            name = self.PLEV_CONFIG[key]["name"]
-            dat_list = []
-            for lev in self.plevels:
-                if name == "Relative humidity" and lev < 300:
-                    dat_list.append(np.zeros_like(dat.values))
-                    continue
+            timestep=[0]
+        dslist=[]
+        for t in timestep:
+            data={}
+            for key in param_names:
+                namekey = self.SFC_CONFIG[key]["namekey"]
+                name = self.SFC_CONFIG[key]["name"]
                 if namekey == "name":
-                    dat = gsm.select(name=name, level=lev)[0]
+                    dat = gsm.select(name=name)[t]
                 elif namekey == "parameterName":
-                    dat = gsm.select(parameterName=name, level=lev)[0]
-                dat_list.append(dat.values)
-            data[key] = (["level", "lat", "lon"], np.array(dat_list),
-                         {"title": self.PLEV_CONFIG[key]["name"],
-                          "units": self.PLEV_CONFIG[key]["units"]})
-            del dat_list
-        lat, lon = dat.latlons()
-        lat = lat[:, 0]
-        lon = lon[0, :]
-        coords = {
-            "level": (("level", self.plevels, {"units": "hPa"})),
-            "lat": (("lat", lat, {"units": "degrees_north"})),
-            "lon": (("lon", lon, {"units": "degrees_east"}))
-        }
-        ds = xr.Dataset(data, coords)
-        if type(crip) is tuple:
-            lon1, lon2, lat1, lat2 = crip
-            ds = ds.sel(lon=slice(lon1, lon2), lat=slice(lat1, lat2))
-        elif crip == "Asia":
-            ds = ds.sel(lat=slice(70, 0), lon=slice(60, 210))
+                    dat = gsm.select(parameterName=name)[t]
+                data[key] = (["lat", "lon"], dat.values,
+                             {"title": self.SFC_CONFIG[key]["name"],
+                              "units": self.SFC_CONFIG[key]["units"]})
+                lat, lon = dat.latlons()
+                lat = lat[:, 0]
+                lon = lon[0, :]
+                coords = {
+                    "lat": (("lat", lat, {"units": "degrees_north"})),
+                    "lon": (("lon", lon, {"units": "degrees_east"}))
+                }
+                ds = xr.Dataset(data, coords)
+                if type(crip) is tuple:
+                    lon1, lon2, lat1, lat2 = crip
+                    ds = ds.sel(lon=slice(lon1, lon2), lat=slice(lat1, lat2))
+                elif crip == "Asia":
+                    ds = ds.sel(lat=slice(70, 0), lon=slice(60, 210))
+            dslist.append(ds)
+            del data
         gsm.close()
-        del data
-        return ds
+        if len(dslist)==1:
+            dsout=dslist[0]
+        else:
+            dsout=xr.concat(dslist, dim="time")
+        del dslist
+        return dsout
+
+    def read_plev(self, file, crip="Asia", timestep=[0]):
+        gsm = pygrib.open(file)
+        param_names = list(self.PLEV_CONFIG.keys())
+        dslist=[]
+        for t in timestep:
+            data={}
+            for key in param_names:
+                namekey = self.PLEV_CONFIG[key]["namekey"]
+                name = self.PLEV_CONFIG[key]["name"]
+                dat_list = []
+                for lev in self.plevels:
+                    if name == "Relative humidity" and lev < 300:
+                        dat_list.append(np.zeros_like(dat.values))
+                        continue
+                    if namekey == "name":
+                        dat = gsm.select(name=name, level=lev)[0]
+                    elif namekey == "parameterName":
+                        dat = gsm.select(parameterName=name, level=lev)[0]
+                    dat_list.append(dat.values)
+                data[key] = (["level", "lat", "lon"], np.array(dat_list),
+                             {"title": self.PLEV_CONFIG[key]["name"],
+                              "units": self.PLEV_CONFIG[key]["units"]})
+                del dat_list
+            lat, lon = dat.latlons()
+            lat = lat[:, 0]
+            lon = lon[0, :]
+            coords = {
+                "level": (("level", self.plevels, {"units": "hPa"})),
+                "lat": (("lat", lat, {"units": "degrees_north"})),
+                "lon": (("lon", lon, {"units": "degrees_east"}))
+            }
+            ds = xr.Dataset(data, coords)
+            if type(crip) is tuple:
+                lon1, lon2, lat1, lat2 = crip
+                ds = ds.sel(lon=slice(lon1, lon2), lat=slice(lat1, lat2))
+            elif crip == "Asia":
+                ds = ds.sel(lat=slice(70, 0), lon=slice(60, 210))
+            dslist.append(ds)
+            del data
+        gsm.close()
+        if len(dslist)==1:
+            dsout=dslist[0]
+        else:
+            dsout=xr.concat(dslist,dim="time")
+        del  dslist
+        return dsout
 
 
 class Wheather_map():
@@ -160,16 +191,19 @@ class Wheather_map():
             "cool": np.arange(-100, 50.1, 6)
         }
         self.figsize = (20, 12)
+        self.map_extent=[90,170,10,55]
+        self.fct_extent=[110,160,20,55]
 
-    def plot_850hPa_map(self, ds, season="warm", lev=850):
-        fig = plt.figure(figsize=self.figsize)
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+    def plot_850hPa_map(self, ds, season="warm", lev=850,fig=None,ax=None,smooth=False):
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
         # ax.set_extent([120,150,20,50],crs=ccrs.PlateCarree())
-        ax.set_extent([90, 170, 10, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extent, crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["850hPa"]["level1"], colors="k")
@@ -194,15 +228,16 @@ class Wheather_map():
             level=lev).values/0.51, length=6, regrid_shape=12, transform=ccrs.PlateCarree())
         return fig, ax
 
-    def plot_700hPa_map(self, ds, lev=700):
-        fig = plt.figure(figsize=self.figsize)
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+    def plot_700hPa_map(self, ds, lev=700,fig=None,ax=None):
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
         # ax.set_extent([120,150,20,50],crs=ccrs.PlateCarree())
-        ax.set_extent([90, 170, 10, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extent, crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["700hPa"]["level1"], colors="k")
@@ -227,14 +262,15 @@ class Wheather_map():
             level=lev).values/0.51, length=6, regrid_shape=12, transform=ccrs.PlateCarree())
         return fig, ax
 
-    def plot_500hPa_map(self, ds, season="warm", lev=500):
-        fig = plt.figure(figsize=self.figsize)
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+    def plot_500hPa_map(self, ds, season="warm", lev=500,fig=None, ax=None):
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent([90, 170, 10, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extent, crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["500hPa"]["level1"], colors="k")
@@ -251,16 +287,18 @@ class Wheather_map():
         # 矢羽根プロット
         ax.barbs(ds["lon"], ds["lat"], ds["u"].sel(level=lev).values/0.51, ds["v"].sel(
             level=lev).values/0.51, length=6, regrid_shape=12, transform=ccrs.PlateCarree())
+        ax.set_title("500hPa")
         return fig, ax
 
-    def plot_300hPa_map(self, ds, season="warm", lev=300):
-        fig = plt.figure(figsize=self.figsize)
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+    def plot_300hPa_map(self, ds, season="warm", lev=300,ax=None, fig=None):
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent([90, 170, 10, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extent, crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["300hPa"]["level1"], colors="k")
@@ -272,6 +310,7 @@ class Wheather_map():
         # 矢羽根プロット
         ax.barbs(ds["lon"], ds["lat"], ds["u"].sel(level=lev).values/0.51, ds["v"].sel(
             level=lev).values/0.51, length=6, regrid_shape=12, transform=ccrs.PlateCarree())
+        ax.set_title("300hPa")
         return fig, ax
 
     def _make_label(self, x):
@@ -283,7 +322,8 @@ class Wheather_map():
             return str(int(x))
 
     def _detect_peaks_v(self, dsinput, item, filter_size=3, order=0.3, factor=1.0e0):
-        ds = dsinput.sel(level=700, lat=slice(55, 20), lon=slice(120, 180))
+        lon1,lon2,lat1,lat2=self.fct_extent
+        ds = dsinput.sel(level=700, lat=slice(lat2, lat1), lon=slice(lon1,lon2))
         lon = ds["lon"].values
         lat = ds["lat"].values
         val = ds[item].values
@@ -347,14 +387,15 @@ class Wheather_map():
             ax.text(lon, lat, "\n"+label, verticalalignment="center",
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=14)
 
-    def plot_500hPa_vo_map(self, ds, lev=500):
-        fig = plt.figure(figsize=self.figsize)
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+    def plot_500hPa_vo_map(self, ds, lev=500,ax=None, fig=None):
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent([90, 170, 10, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["500hPa"]["level1"], colors="k")
@@ -369,12 +410,15 @@ class Wheather_map():
         cs3 = ax.contour(ds["lon"], ds["lat"], ds["vo"].sel(
             level=lev)*1e6, transform=ccrs.PlateCarree(), levels=volevels, colors="k", extend="both", linestyles="dashed")
         # 渦度の極大値プロット
-        df_peak = self.detect_peaks_v(
+        df_peak = self._detect_peaks_v(
             ds, "vo", filter_size=3, order=0.5, factor=1e6)
-        self.plot_peak(ax, df_peak)
+        self._plot_peak(ax, df_peak)
+        ax.set_title("500hPa height_vorticity")
         return fig, ax
 
-    def _detect_peaks_precip(self, ds, filter_size=3, order=0.3):
+    def _detect_peaks_precip(self, dsinput, filter_size=3, order=0.3):
+        lon1,lon2,lat1,lat2=self.fct_extent
+        ds=dsinput.sel(lon=slice(lon1,lon2),lat=slice(lat2,lat1))
         lon = ds["lon"].values
         lat = ds["lat"].values
         precip = ds["precip"].values
@@ -425,17 +469,17 @@ class Wheather_map():
             ax.text(lon, lat, "\n"+label, verticalalignment="center",
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=14)
 
-    def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8):
+    def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8, ax=None, fig=None):
         # 極大値を見つける
         df_peak = self._detect_peaks_precip(ds)
-
-        fig = plt.figure(figsize=self.figsize)
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent([90, 170, 10, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
 
         cs = ax.contour(ds["lon"], ds["lat"], ds["pmsl"]*1e-2, transform=ccrs.PlateCarree(),
                         levels=self.levels["SFC_FCT"]["level1"], colors="k")
@@ -454,16 +498,18 @@ class Wheather_map():
         # 矢羽根プロット
         ax.barbs(ds["lon"], ds["lat"], ds["u10"].values/0.51, ds["v10"].values /
                  0.51, length=6, regrid_shape=12, transform=ccrs.PlateCarree())
+        ax.set_title("surface precip_pressure_wind")
         return fig, ax
 
-    def plot_850hPa_T_wind_700hPa_omega(self, ds, cmap="none"):
-        fig = plt.figure(figsize=self.figsize)
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+    def plot_850hPa_T_wind_700hPa_omega(self, ds, cmap="none", ax=None, fig=None):
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent([90, 170, 10, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
 
         # 850hPa気温
         cs = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(level=850)-273.15, transform=ccrs.PlateCarree(),
@@ -480,22 +526,23 @@ class Wheather_map():
         # 鉛直p速度の極大値
         df_peak = self._detect_peaks_v(
             ds, "vp", filter_size=3, order=0.3, factor=1.0)
-        self.plot_peak(ax, df_peak)
+        self._plot_peak(ax, df_peak)
 
         # 850hPa矢羽根
         ax.barbs(ds["lon"], ds["lat"], ds["u"].sel(level=850).values/0.51, ds["v"].sel(
             level=850).values/0.51, length=6, regrid_shape=12, transform=ccrs.PlateCarree())
-
+        ax.set_title("850hPa temperature 700hPa omega")
         return fig, ax
 
-    def plot_500hPa_T_700hPa_dew_point_depression(self, ds, cmap="none"):
-        fig = plt.figure(figsize=self.figsize)
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+    def plot_500hPa_T_700hPa_dew_point_depression(self, ds, cmap="none", ax=None, fig=None):
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent([90, 170, 10, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
         # 500hPa等温線
         Tlevels = np.arange(-60, 40, 3)
         cs3 = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(
@@ -512,16 +559,18 @@ class Wheather_map():
         cs4_2 = ax.contour(ds["lon"], ds["lat"], ds["T-Tw"].sel(level=700),
                            transform=ccrs.PlateCarree(), colors="k", levels=x, linestyles=l)
         ax.clabel(cs4_2, cs4_2.levels[2::2])
+        ax.set_title("500hPa T 700hPa dew point depreesion")
         return fig, ax
 
-    def plot_850hPa_wind_equ_potential_temperature(self, ds):
-        fig = plt.figure(figsize=(20, 12))
-        ax = fig.add_subplot(
-            1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
+    def plot_850hPa_wind_equ_potential_temperature(self, ds,ax=None, fig=None):
+        if ax is None:
+            fig = plt.figure(figsize=self.figsize)
+            ax = fig.add_subplot(
+                1, 1, 1, projection=ccrs.NorthPolarStereo(central_longitude=140))
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent([120, 150, 20, 55], crs=ccrs.PlateCarree())
+        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
 
         # 850hPa風矢羽根プロット
         ax.barbs(ds["lon"], ds["lat"], ds["u"].sel(level=850).values/0.51, ds["v"].sel(
@@ -531,7 +580,8 @@ class Wheather_map():
         cs4 = ax.contour(ds["lon"], ds["lat"], ds["theta_w"],
                          transform=ccrs.PlateCarree(), colors="k", levels=theta_levels)
         cs4_2 = ax.contour(ds["lon"], ds["lat"], ds["theta_w"], transform=ccrs.PlateCarree(
-        ), colors="k", levels=theta_levels[::5], linewidths=3)
+        ), colors="k", levels=theta_levels[::5], linewidths=1)
         ax.clabel(cs4, cs4.levels[::2])
         ax.clabel(cs4_2, [210, 240, 270, 300, 330, 360])
+        ax.set_title("850hPa wind equ potential temperature")
         return fig, ax
