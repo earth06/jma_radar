@@ -38,7 +38,7 @@
             },
             "Medium_cloud_cover":{
                 "name":"Medium cloud cover",
-                "namekey":"parametername",
+                "namekey":"parameterName",
                 "units":"%"
             },
             "High_cloud_cover":{

@@ -13,14 +13,9 @@ import yaml
 import sqlite3
 import sys
 
-root_dir = [os.path.dirname(__file__), os.pardir]
+ROOTDIR=os.path.dirname(__file__)
+root_dir = [ROOTDIR , os.pardir]
 sys.path.append(os.path.join(*root_dir))
-
-from Common.database_upsert import upsert  # noqa: E402
-from Common.logger import logger  # noqa: E402
-
-with open("./gpvpath.yaml") as f:
-    CONFIG = yaml.safe_load(f)
 
 
 def _get_param_GSM(var0, var1, var2):
@@ -90,7 +85,7 @@ def _get_precip_GSM(precip0, precip1, precip2):
 
 
 # 格子情報定義を読み込む
-grid = pygrib.open("./master/gridGSM.bin")
+grid = pygrib.open(f"{ROOTDIR}/master/gridGSM.bin")
 rr = grid.select(parameterName="Total precipitation")[0]
 lats, lons = rr.latlons()
 lat = lats[:, 0]
@@ -99,7 +94,11 @@ grid.close()
 ##
 encoding = {"precip": {"zlib": True, "complevel": 5, "dtype": "float32"},
             "T2m": {"zlib": True, "complevel": 5, "dtype": "float32"},
-            "solar_rad_flux": {"zlib": True, "complevel": 5, "dtype": "float32"},
+            #"solar_rad_flux": {"zlib": True, "complevel": 5, "dtype": "float32"},
+            "ch_cover":{"zlib":True, "dtype":"float32"},
+            "cm_cover":{"zlib":True, "dtype":"float32"},
+            "cl_cover":{"zlib":True, "dtype":"float32"},
+            "c_tot_cover":{"zlib":True, "dtype":"float32"},
             "u2m": {"zlib": True, "dtype": "float32"},
             "v2m": {"zlib": True, "dtype": "float32"},
             "rh": {"zlib": True, "dtype": "float32"},
@@ -109,13 +108,23 @@ fct_variables_names = [
     "Total precipitation",
     "Relative humidity",
     "2 metre temperature",
-    "Downward short-wave radiation flux",
+    #"Downward short-wave radiation flux",
+    "High cloud cover",
+    "Medium cloud cover",
+    "Low cloud cover",
+    "Total cloud cover",
     "10 metre U wind component",
     "10 metre V wind component",
 ]
 
+paramerter_names=[
+    "Total precipitation", "Relative humidity",
+    "Low cloud cover", "Medium cloud cover","High cloud cover", "Total cloud cover"
+]
 
-def grib2_to_netcdf(init_time, is_output=False):
+
+def grib2_to_netcdf(init_time, is_output=False, GSMDIR="/home/takato/Data/JMA/GSM/jp/1200UTC"
+    , NCDIR="/home/takato/Data/JMA/GSM/jpnc/1200UTC"):
     datetime = pd.to_datetime(init_time, format="%Y%m%d%H%M")
     iyy = datetime.year
     im = datetime.month
@@ -123,19 +132,18 @@ def grib2_to_netcdf(init_time, is_output=False):
     hour = datetime.hour
     minute = datetime.minute
 
-    filename = CONFIG["DATADIR"] + \
-        f"/GSM/1200UTC/{iyy:04d}/{im:02d}/Z__C_RJTD_{iyy:04d}{im:02d}{iday:02d}{hour:02d}{minute:02d}00_GSM_GPV_Rjp_Lsurf"
+    filename = \
+        f"{GSMDIR}/{iyy:04d}/{im:02d}/Z__C_RJTD_{iyy:04d}{im:02d}{iday:02d}{hour:02d}{minute:02d}00_GSM_GPV_Rjp_Lsurf"
     gribfile0 = filename+"_FD0000-0312_grib2.bin"
     gribfile1 = filename+"_FD0315-0800_grib2.bin"
     gribfile2 = filename+"_FD0803-1100_grib2.bin"
-    logger.info("decode grib2 start")
     grib0 = pygrib.open(gribfile0)
     grib1 = pygrib.open(gribfile1)
     grib2 = pygrib.open(gribfile2)
     fct_variables_dict = {}
     for var in fct_variables_names:
         # 降水量と湿度はparameterName参照なので
-        if var in ["Total precipitation", "Relative humidity"]:
+        if var in paramerter_names:
             buf0 = grib0.select(parameterName=var)
             buf1 = grib1.select(parameterName=var)
             buf2 = grib2.select(parameterName=var)
@@ -161,7 +169,11 @@ def grib2_to_netcdf(init_time, is_output=False):
     values = {
         "precip": (["time", "lat", "lon"], fct_variables_dict["Total precipitation"], {"units": "[mm/hr]", "long name": "total precipitaion in last hour"}),
         "T2m": (["time", "lat", "lon"], fct_variables_dict["2 metre temperature"], {"units": "[K]", "long name": "2m temperature"}),
-        "solar_rad_flux": (["time", "lat", "lon"], fct_variables_dict["Downward short-wave radiation flux"], {"units": "[W*m^-2]", "long name": "downward short wave radiation flux"}),
+#        "solar_rad_flux": (["time", "lat", "lon"], fct_variables_dict["Downward short-wave radiation flux"], {"units": "[W*m^-2]", "long name": "downward short wave radiation flux"}),
+        "ch_cover": (["time", "lat", "lon"], fct_variables_dict["High cloud cover"], {"units": "%", "long name": "high cloud cover"}),
+        "cm_cover": (["time", "lat", "lon"], fct_variables_dict["Medium cloud cover"], {"units": "%", "long name": "middle cloud cover"}),
+        "cl_cover": (["time", "lat", "lon"], fct_variables_dict["Low cloud cover"], {"units": "%", "long name": "low cloud cover"}),
+        "c_tot_cover": (["time", "lat", "lon"], fct_variables_dict["Total cloud cover"], {"units": "%", "long name": "total cloud cover"}),
         "u2m": (["time", "lat", "lon"], fct_variables_dict["10 metre U wind component"], {"units": "m/s", "long name": "2m u wind"}),
         "v2m": (["time", "lat", "lon"], fct_variables_dict["10 metre V wind component"], {"units": "m/s", "long name": "2m v wind"}),
         "rh": (["time", "lat", "lon"], fct_variables_dict["Relative humidity"], {"units": "%", "long name": "relative humidity"}),
@@ -171,14 +183,13 @@ def grib2_to_netcdf(init_time, is_output=False):
     ds = xr.Dataset(values, coords, attrs)
     if is_output:
         filename = f"GSM_{iyy:04d}{im:02d}{iday:02d}{hour:02d}{minute:02d}00UTC_all_1H_264H_Lsurf_GPV.nc"
-        os.makedirs(CONFIG["GSM_NCDIR"], exist_ok=True)
-        ds.to_netcdf(CONFIG["GSM_NCDIR"]+f"/{filename}", encoding=encoding)
-        logger.info(f"save to {CONFIG['GSM_NCDIR']}/{filename}")
+        os.makedirs(f"{NCDIR}/{iyy}/{im:02d}", exist_ok=True)
+        ds.to_netcdf(f"{NCDIR}/{iyy}/{im:02d}/{filename}", encoding=encoding)
     # clean up
     grib0.close()
     grib1.close()
     grib2.close()
-    logger.info("decode end correctly")
+    print(init_time,"end")
     return ds
 
 
@@ -195,180 +206,3 @@ def _calc_wbgt(ds):
         + 7.619*SR**2 \
         - 0.0572*ds["wind"]
     return wbgt
-
-
-def netcdf_to_dataframe(ds, init_time):
-    logger.info("Extract station point data")
-    with open("./master/pref_jp2en.json", "tr") as f:
-        jp2en_dict = json.load(f)
-    tdfk_list = list(jp2en_dict.keys())
-    mask = xr.open_dataset("./master/GSM_MASK_TDFK.nc")
-    focus_tdfk = ["北海道", "東京都", "大阪府", "愛知県", "福岡県", "広島県",
-                  "静岡県", "宮城県", "愛媛県", "岐阜県", "三重県", "長野県"]
-    weight_cols = ["w_precip", "w_T2m", "w_solar_rad_flux",
-                   "w_u2m", "w_v2m", "w_rh",
-                   "w_wind", "w_DI", "w_WBGT"]
-    # 変数に使っている都道府県だけで処理を行う
-    mask = mask.sel(tdfk=focus_tdfk)
-
-    tdfk_area = mask["tdfk_area"].sum(dim=["lat", "lon"])
-    ds["time"] = pd.to_datetime(ds["time"].values) + \
-        pd.offsets.Hour(9)  # UTC->JST
-    ds1yr = ds.isel(time=slice(0, 144))
-    # 風速.不快指数とwbgtを算出
-    #ds1yr["wind"] = xr.ufuncs.sqrt(ds1yr["u2m"]**2 + ds1yr["v2m"]**2)
-    ds1yr["wind"] = np.sqrt(ds1yr["u2m"]**2 + ds1yr["v2m"]**2)
-    ds1yr["DI"] = _calc_di(ds1yr)
-    ds1yr["WBGT"] = _calc_wbgt(ds1yr)
-
-    # 都道府県別に重みをつける
-    for wcol in weight_cols:
-        org = wcol[2:]
-        ds1yr[wcol] = ds1yr[org]*mask["tdfk_area"]
-    dstdfk = ds1yr[weight_cols].sum(dim=["lat", "lon"])
-    dsout = dstdfk/tdfk_area
-    dfout = dsout.to_dataframe().reset_index()
-    dfout["tdfk"] = dfout["tdfk"].apply(lambda x: jp2en_dict[x])
-    # 予報初期時刻をつけておく
-    # 初期時刻＋３H=00:00JSTを予報の開始としてフラグを立てる用にする
-    init_time = pd.to_datetime(
-        init_time, format="%Y%m%d%H%M")+pd.offsets.Hour(9) + pd.offsets.Hour(1)
-    dfout["init_time"] = init_time
-    col_dict = {'w_precip': 'precip',
-                'w_solar_rad_flux': "solar_rad_flux",
-                "w_WBGT": "WBGT",
-                'w_T2m': 'T2m',
-                'w_u2m': 'u2m',
-                'w_v2m': 'v2m',
-                'w_rh': 'rh',
-                'w_ps': 'ps',
-                'w_pmsl': 'pmsl',
-                'w_tot_cloud_cover': 'tot_cloud_cover',
-                'w_wind': 'wind',
-                'w_DI': 'DI',
-                'init_time': 'it_time'}
-    dfout.rename(columns=col_dict, inplace=True)
-    return dfout
-
-
-def split_to_each_prefecture(dfout, init_time):
-    init_time = pd.to_datetime(
-        init_time, format="%Y%m%d%H%M")+pd.offsets.Hour(9) + pd.offsets.Hour(1)
-    sdate = init_time.strftime("%Y%m%d%H%M00JST")
-    dfdict = {}
-    for t in dfout["tdfk"].unique():
-        tmp = dfout[dfout["tdfk"] == t].copy()
-        tmp["time"] = pd.to_datetime(tmp["time"])
-        tmp.set_index("time", inplace=True)
-        tmp["T2m"] = tmp["T2m"] - 273.15
-        diff = tmp.index - (pd.to_datetime(tmp["it_time"]))
-        tmp["elapse_days"] = diff.dt.days
-        tmp["elapse_hours"] = diff.dt.total_seconds()/3600.0
-        tmp["elapse_hours"] = tmp["elapse_hours"].apply(lambda x: round(x))
-        tmp.index.name = "date_time"
-        # 初期時刻を0000JSTにする
-        tmp = tmp[tmp["elapse_hours"] >= 2]
-        tmp["it_time"] = (pd.to_datetime(tmp["it_time"]) +
-                          pd.offsets.Hour(2)).dt.strftime("%Y-%m-%d")
-        tmp.drop(columns=["elapse_hours"], inplace=True)
-        dfdict[t] = tmp.copy()
-    return dfdict
-
-
-def upsert_gsm(df, CONNECTION_CONFIG):
-    """dbにGSMデータを追加
-
-    Args:
-        df (pd.DataFrame): 都道府県別GSM
-        CONNECTION_CONFIG (db): dbに接続
-
-    Returns:
-        int: 0
-    """
-    upsert(df, "gsm_area_mean_al", [
-        "date_time", "tdfk", "elapse_days"], CONNECTION_CONFIG)
-    return 0
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="ex) ./convert_GSM_to_pred_weather_csv.py init_time --output_nc")
-    parser.add_argument("init_time", help="GSM inital time YYYYMMDDhhmm")
-
-    # ファイル出力計の引数
-    parser.add_argument("--output_nc", action="store_true",
-                        help="flag args, wheather output netcdf file or not")
-    parser.add_argument("--output_csv", action="store_true")
-    parser.add_argument("--output_db", action="store_true")
-
-    # 処理の途中から始めるフラグ
-    parser.add_argument("--from_nc", action="store_true",
-                        help="netcdf-> csvの変換から処理を開始")
-    parser.add_argument("--from_csv", action="store_true",
-                        help="csv -> dbへの登録のみ実行")
-    args = parser.parse_args()
-    init_time = args.init_time
-
-    # grib2 -> nc
-    if args.from_nc:
-        #すでにnetcdfファイルがある.
-        filename = f"GSM_{init_time}00UTC_all_1H_264H_Lsurf_GPV.nc"
-        filepath = CONFIG["GSM_NCDIR"]+f"/{filename}"
-        logger.info(f"Loading {filepath} directly")
-        try:
-            ds = xr.open_dataset(filepath)
-        except BaseException as e:
-            logger.error("load netcdf file  failed")
-            raise
-    elif args.from_csv:
-        #すでにcsvファイルがある
-        logger.info("Skip extracting part")
-        pass
-    else:
-        logger.info(f"Decode grib2 @{init_time}")
-        try:
-            ds = grib2_to_netcdf(init_time, args.output_nc)
-        except BaseException as e:
-            logger.error("Decode failed")
-            raise
-
-    # nc -> csv
-    if args.from_csv:
-        logger.info("Csv files are loaeded directly")
-        init_time = pd.to_datetime(init_time, format="%Y%m%d%H%M") +\
-            pd.offsets.Hour(9) + pd.offsets.Hour(1)
-        sdate = init_time.strftime("%Y%m%d%H%M00JST")
-        logger.info(f"Loading csv file @ {sdate}")
-        files = glob.glob(
-            CONFIG["GSM_CSVDIR"]+f"/*/{init_time.year:04d}/{init_time.month:02d}/GSM_*_{sdate}.csv")
-        dflist = []
-        for f in files:
-            dflist.append(pd.read_csv(f))
-        dfall = pd.concat(dflist)
-    else:
-        try:
-            dfout = netcdf_to_dataframe(ds, init_time)
-            dfdict = split_to_each_prefecture(dfout, init_time)
-            # ファイル出力
-            if args.output_csv:
-                init_time = pd.to_datetime(init_time, format="%Y%m%d%H%M") +\
-                    pd.offsets.Hour(9) + pd.offsets.Hour(1)
-                sdate = init_time.strftime("%Y%m%d%H%M00JST")
-                for tdfk in dfdict.keys():
-                    tmp = dfdict[tdfk]
-                    dirname = CONFIG["GSM_CSVDIR"] + \
-                        f"/{tdfk}/{init_time.year:04d}/{init_time.month:02d}"
-                    os.makedirs(dirname, exist_ok=True)
-                    tmp.to_csv(f"{dirname}/GSM_{tdfk}_{sdate}.csv")
-                    logger.info(f"save to {dirname}/GSM_{tdfk}_{sdate}.csv")
-            dflist = list(dfdict.values())
-            dfall = pd.concat(dflist)
-        except BaseException as e:
-            logger.error(f"Extract station point failed")
-            raise
-
-    # csv -> db
-    if args.output_db:
-        CONNECTION_CONFIG = sqlite3.connect(CONFIG["DB_DIR"])
-        upsert_gsm(dfall,CONNECTION_CONFIG)
-        CONNECTION_CONFIG.close()
