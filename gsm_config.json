@@ -60,7 +60,7 @@
 
         "PLEV":{
             "hgt":{
-                "name":"Geopotential Height",
+                "name":"Geopotential height",
                 "namekey":"name",
                 "units":"gpm"
             },
