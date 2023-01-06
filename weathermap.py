@@ -56,11 +56,14 @@ class WheatherMap():
             "warm": np.arange(-100, 50.1, 3),
             "cool": np.arange(-100, 50.1, 6)
         }
-        self.figsize = (20, 12)
-        self.map_extent=[90,170,10,55]
-        self.fct_extent=[110,160,20,55]
+        self.figsize = (9, 6)
+        self.map_extents={
+            "EastAsia":[110,160,20,55],
+            "Asia":[90,170,10,55],
+            "Japan":[120,150,20,50]
+        }
 
-    def plot_850hPa_map(self, ds, season="warm", lev=850,fig=None,ax=None,smooth=False):
+    def plot_850hPa_map(self, ds, season="warm", lev=850,fig=None,ax=None,smooth=False, map="EastAsia"):
         if ax is None:
             fig = plt.figure(figsize=self.figsize)
             ax = fig.add_subplot(
@@ -69,7 +72,7 @@ class WheatherMap():
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
         # ax.set_extent([120,150,20,50],crs=ccrs.PlateCarree())
-        ax.set_extent(self.map_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["850hPa"]["level1"], colors="k")
@@ -94,7 +97,7 @@ class WheatherMap():
             level=lev).values/0.51, length=6, regrid_shape=12, transform=ccrs.PlateCarree())
         return fig, ax
 
-    def plot_700hPa_map(self, ds, lev=700,fig=None,ax=None):
+    def plot_700hPa_map(self, ds, lev=700,fig=None,ax=None,map="EastAsia"):
         if ax is None:
             fig = plt.figure(figsize=self.figsize)
             ax = fig.add_subplot(
@@ -103,7 +106,7 @@ class WheatherMap():
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
         # ax.set_extent([120,150,20,50],crs=ccrs.PlateCarree())
-        ax.set_extent(self.map_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["700hPa"]["level1"], colors="k")
@@ -128,7 +131,7 @@ class WheatherMap():
             level=lev).values/0.51, length=6, regrid_shape=12, transform=ccrs.PlateCarree())
         return fig, ax
 
-    def plot_500hPa_map(self, ds, season="warm", lev=500,fig=None, ax=None):
+    def plot_500hPa_map(self, ds, season="warm", lev=500,fig=None, ax=None, map="EastAsia"):
         if ax is None:
             fig = plt.figure(figsize=self.figsize)
             ax = fig.add_subplot(
@@ -136,7 +139,7 @@ class WheatherMap():
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent(self.map_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["500hPa"]["level1"], colors="k")
@@ -156,7 +159,7 @@ class WheatherMap():
         ax.set_title("500hPa")
         return fig, ax
 
-    def plot_300hPa_map(self, ds, season="warm", lev=300,ax=None, fig=None):
+    def plot_300hPa_map(self, ds, season="warm", lev=300,ax=None, fig=None, map="EastAsia"):
         if ax is None:
             fig = plt.figure(figsize=self.figsize)
             ax = fig.add_subplot(
@@ -164,7 +167,7 @@ class WheatherMap():
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent(self.map_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["300hPa"]["level1"], colors="k")
@@ -253,7 +256,7 @@ class WheatherMap():
             ax.text(lon, lat, "\n"+label, verticalalignment="center",
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=14)
 
-    def plot_500hPa_vo_map(self, ds, lev=500,ax=None, fig=None):
+    def plot_500hPa_vo_map(self, ds, lev=500,ax=None, fig=None,map="EastAsia"):
         if ax is None:
             fig = plt.figure(figsize=self.figsize)
             ax = fig.add_subplot(
@@ -261,7 +264,7 @@ class WheatherMap():
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
         # 等高度線
         cs = ax.contour(ds["lon"], ds["lat"], ds["hgt"].sel(
             level=lev), transform=ccrs.PlateCarree(), levels=self.levels["500hPa"]["level1"], colors="k")
@@ -335,7 +338,7 @@ class WheatherMap():
             ax.text(lon, lat, "\n"+label, verticalalignment="center",
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=14)
 
-    def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8, ax=None, fig=None):
+    def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8, ax=None, fig=None, map="EastAsia"):
         # 極大値を見つける
         df_peak = self._detect_peaks_precip(ds)
         if ax is None:
@@ -345,7 +348,7 @@ class WheatherMap():
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
 
         cs = ax.contour(ds["lon"], ds["lat"], ds["pmsl"]*1e-2, transform=ccrs.PlateCarree(),
                         levels=self.levels["SFC_FCT"]["level1"], colors="k")
@@ -367,7 +370,7 @@ class WheatherMap():
         ax.set_title("surface precip_pressure_wind")
         return fig, ax
 
-    def plot_850hPa_T_wind_700hPa_omega(self, ds, cmap="none", ax=None, fig=None):
+    def plot_850hPa_T_wind_700hPa_omega(self, ds, cmap="none", ax=None, fig=None, map="EastAsia"):
         if ax is None:
             fig = plt.figure(figsize=self.figsize)
             ax = fig.add_subplot(
@@ -375,7 +378,7 @@ class WheatherMap():
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
 
         # 850hPa気温
         cs = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(level=850)-273.15, transform=ccrs.PlateCarree(),
@@ -400,7 +403,7 @@ class WheatherMap():
         ax.set_title("850hPa temperature 700hPa omega")
         return fig, ax
 
-    def plot_500hPa_T_700hPa_dew_point_depression(self, ds, cmap="none", ax=None, fig=None):
+    def plot_500hPa_T_700hPa_dew_point_depression(self, ds, cmap="none", ax=None, fig=None,map="EastAsia"):
         if ax is None:
             fig = plt.figure(figsize=self.figsize)
             ax = fig.add_subplot(
@@ -408,7 +411,7 @@ class WheatherMap():
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
         # 500hPa等温線
         Tlevels = np.arange(-60, 40, 3)
         cs3 = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(
@@ -428,7 +431,7 @@ class WheatherMap():
         ax.set_title("500hPa T 700hPa dew point depreesion")
         return fig, ax
 
-    def plot_850hPa_wind_equ_potential_temperature(self, ds,ax=None, fig=None):
+    def plot_850hPa_wind_equ_potential_temperature(self, ds,ax=None, fig=None, map="Japan"):
         if ax is None:
             fig = plt.figure(figsize=self.figsize)
             ax = fig.add_subplot(
@@ -436,7 +439,7 @@ class WheatherMap():
         ax.gridlines(draw_labels=True, xlocs=plt.MultipleLocator(
             10), ylocs=plt.MultipleLocator(10))
         ax.coastlines(resolution="50m")
-        ax.set_extent(self.fct_extent, crs=ccrs.PlateCarree())
+        ax.set_extent(self.map_extents[map], crs=ccrs.PlateCarree())
 
         # 850hPa風矢羽根プロット
         ax.barbs(ds["lon"], ds["lat"], ds["u"].sel(level=850).values/0.51, ds["v"].sel(
