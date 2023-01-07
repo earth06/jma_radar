@@ -2,3 +2,4 @@
 __pycache__/
 TempDomainOffLine
 **/.ipynb_checkpoints/
+sample/generate_all_weathermap.ipynb

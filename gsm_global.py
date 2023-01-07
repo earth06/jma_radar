@@ -88,7 +88,7 @@ class GSMGlobal():
                     lon1, lon2, lat1, lat2 = crip
                     ds = ds.sel(lon=slice(lon1, lon2), lat=slice(lat1, lat2))
                 elif crip == "Asia":
-                    ds = ds.sel(lat=slice(70, 0), lon=slice(60, 210))
+                    ds = ds.sel(lat=slice(60, 10), lon=slice(100, 180))
             dslist.append(ds)
             del data
         gsm.close()
