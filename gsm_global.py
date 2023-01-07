@@ -45,7 +45,7 @@ class GSMGlobal():
         self.PLEV_CONFIG = config["GSM"]["PLEV"]
         self.plevels = config["GSM"]["PLEVELS"]
 
-    def read_sfc(self, file, product_type="ANAL", crip="Asia",timestep=[0]):
+    def read_sfc(self, file, product_type="ANAL", crip="Asia",timestep=[0], prev_precip:xr.DataArray=None):
         """
 
         Parameters
@@ -57,6 +57,7 @@ class GSMGlobal():
         timestep : list
             if product_type="ANAL" then timestamp=[0]
             else timestampe=[1,2,3....]
+        prev_precip: xr.DataArray
         """
         gsm = pygrib.open(file)
         param_names = list(self.SFC_CONFIG.keys())
@@ -96,6 +97,8 @@ class GSMGlobal():
             dsout=dslist[0]
         else:
             dsout=xr.concat(dslist, dim="time")
+        if prev_precip is not None:
+            dsout["precip"]=dsout["precip"] - prev_precip
         del dslist
         return dsout
 

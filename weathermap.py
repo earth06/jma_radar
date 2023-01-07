@@ -13,7 +13,7 @@ import custom_colormap
 jmacmap = custom_colormap.get_jmacmap2()
 
 
-class WheatherMap():
+class WeatherMap():
     """
     各天気図を描画するクラス
     """
