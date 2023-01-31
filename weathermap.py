@@ -277,7 +277,7 @@ class WeatherMap():
         ), levels=self.levels["500hPa"]["level2"], colors="k", linewidths=self.boldlinewidth)
         ax.clabel(cs, cs.levels[::2])
         ax.clabel(cs2, [5100, 5700, 6300])
-        hatches = ["|||"]*6+[None]*5
+        hatches =[None]*6+["|||"]*5
         volevels = np.arange(-200, 200.1, 40)
         cs3 = ax.contourf(ds["lon"], ds["lat"], ds["vo"].sel(
             level=lev)*1e6, transform=ccrs.PlateCarree(), levels=volevels, cmap="bwr",

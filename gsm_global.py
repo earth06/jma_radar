@@ -111,6 +111,7 @@ class GSMGlobal():
             for key in param_names:
                 namekey = self.PLEV_CONFIG[key]["namekey"]
                 name = self.PLEV_CONFIG[key]["name"]
+                print(name)
                 dat_list = []
                 for lev in self.plevels:
                     if name == "Relative humidity" and lev < 300:
