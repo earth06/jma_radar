@@ -198,7 +198,7 @@ class WeatherMap():
         if x > 0:
             return "+\n"+str(int(x))
         elif x < 0:
-            return "-\n"+str(int(-x))
+            return "―\n"+str(int(-x))
         else:
             return str(int(x))
 
@@ -265,7 +265,7 @@ class WeatherMap():
         # プロットする
         for lon, lat, label in zip(df_peak_sort.loc[peak_list2, "lon"], df_peak_sort.loc[peak_list2, "lat"], df_peak_sort.loc[peak_list2, "label"]):
             #ax.scatter(lon, lat, color='black',transform=ccrs.PlateCarree(),marker=".",s=1)
-            ax.text(lon, lat, "\n"+label, verticalalignment="center",
+            ax.text(lon, lat, label, verticalalignment="center",
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=self.peak_fontsize)
 
     def plot_500hPa_vo_map(self, ds, lev=500,ax=None, fig=None,map="EastAsia"):
@@ -310,7 +310,7 @@ class WeatherMap():
 
         for idx, (x, y) in enumerate(zip(df_peak["x"], df_peak["y"])):
             df_peak.loc[idx, "value"] = precip[y, x]
-        df_peak["label"] = [str(int(x)) for x in df_peak["value"]]
+        df_peak["label"] = ["+\n"+str(int(x)) for x in df_peak["value"]]
         df_peak["lon"] = [lon[x] for x in df_peak["x"]]
         df_peak["lat"] = [lat[y] for y in df_peak["y"]]
         return df_peak
@@ -341,7 +341,7 @@ class WeatherMap():
         # プロットする
         for lon, lat, label in zip(df_peak_sort.loc[peak_list2, "lon"], df_peak_sort.loc[peak_list2, "lat"], df_peak_sort.loc[peak_list2, "label"]):
             ax.scatter(lon, lat, color='black',
-                       transform=ccrs.PlateCarree(), marker="+", s=100)
+                       transform=ccrs.PlateCarree(), marker=".", s=1)
             ax.text(lon, lat, "\n"+label, verticalalignment="center",
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=self.peak_fontsize)
 
