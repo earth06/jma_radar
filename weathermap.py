@@ -348,8 +348,13 @@ class WeatherMap():
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=self.peak_fontsize)
 
     def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8,ds_prev_precip=None ,ax=None, fig=None, map="EastAsia"):
+        if ds_prev_precip is None:
+            precip=ds["precip"]
+        else:
+            print("calc differential precip")
+            precip=ds["precip"].values - ds_prev_precip.values
         # 極大値を見つける
-        df_peak = self._detect_peaks_precip(ds, map=map)
+        df_peak = self._detect_peaks_precip(precip, map=map)
         fig,ax=self._generate_figure(fig=fig,ax=ax,map=map)
         cs = ax.contour(ds["lon"], ds["lat"], ds["pmsl"]*1e-2, transform=ccrs.PlateCarree(),
                         levels=self.levels["SFC_FCT"]["level1"], colors="k", linewidths=self.linewidth)
@@ -357,10 +362,7 @@ class WeatherMap():
                          levels=self.levels["SFC_FCT"]["level2"], colors="k", linewidths=self.boldlinewidth)
         ax.clabel(cs, cs.levels[::2])
         ax.clabel(cs2, self.levels["SFC_FCT"]["level3"])
-        if ds_prev_precip is None:
-            precip=ds["precip"]
-        else:
-            precip=ds["precip"] - ds_prev_precip
+
         # 等降水量線
         cs3 = ax.contourf(ds["lon"], ds["lat"], precip, transform=ccrs.PlateCarree(),
                           levels=[1, 10, 20, 30, 40, 50], extend="max", linestyles="dashed", cmap=cmap, alpha=alpha, linewidths=self.linewidth)
