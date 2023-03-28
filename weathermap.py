@@ -64,10 +64,12 @@ class WeatherMap():
         }
         self.boldlinewidth=1
         self.linewidth=0.5
-        self.barbwidth=0.5
+        self.barbwidth=0.25
         self.hatchwidth=0.5
         plt.rcParams['hatch.linewidth'] =self.hatchwidth
+        plt.rcParams['contour.negative_linestyle'] = 'solid'
         self.peak_fontsize=9
+        self.outdir="./"
 
     def _generate_figure(self,fig=None,ax=None,map="EastAsia"):
         if ax is None:
@@ -266,7 +268,7 @@ class WeatherMap():
         for lon, lat, label in zip(df_peak_sort.loc[peak_list2, "lon"], df_peak_sort.loc[peak_list2, "lat"], df_peak_sort.loc[peak_list2, "label"]):
             #ax.scatter(lon, lat, color='black',transform=ccrs.PlateCarree(),marker=".",s=1)
             ax.text(lon, lat, label, verticalalignment="center",
-                    horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=self.peak_fontsize)
+                    horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=self.peak_fontsize, weight="bold")
 
     def plot_500hPa_vo_map(self, ds, lev=500,ax=None, fig=None,map="EastAsia"):
         fig,ax=self._generate_figure(fig=fig,ax=ax,map=map)
@@ -280,15 +282,15 @@ class WeatherMap():
         hatches =[None]*6+["|||"]*5
         volevels = np.arange(-200, 200.1, 40)
         cs3 = ax.contourf(ds["lon"], ds["lat"], ds["vo"].sel(
-            level=lev)*1e6, transform=ccrs.PlateCarree(), levels=volevels, cmap="bwr",
-            hatches=hatches, extend="both", linewidths=self.linewidth)
+            level=lev)*1e6, transform=ccrs.PlateCarree(), levels=volevels, colors="None",
+            hatches=hatches, extend="both")
         cs3 = ax.contour(ds["lon"], ds["lat"], ds["vo"].sel(
             level=lev)*1e6, transform=ccrs.PlateCarree(), levels=volevels,colors="k", extend="both", linestyles="dashed"
             ,linewidths=self.linewidth)
         # 渦度の極大値プロット
-        df_peak = self._detect_peaks_v(
-            ds, "vo", filter_size=3, order=0.5, factor=1e6, map=map)
-        self._plot_peak(ax, df_peak)
+        # df_peak = self._detect_peaks_v(
+        #     ds, "vo", filter_size=3, order=0.5, factor=1e6, map=map)
+        # self._plot_peak_v(ax, df_peak)
         ax.set_title("500hPa height_vorticity")
         return fig, ax
 
@@ -345,7 +347,7 @@ class WeatherMap():
             ax.text(lon, lat, "\n"+label, verticalalignment="center",
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=self.peak_fontsize)
 
-    def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8, ax=None, fig=None, map="EastAsia"):
+    def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8,ds_prev_precip=None ,ax=None, fig=None, map="EastAsia"):
         # 極大値を見つける
         df_peak = self._detect_peaks_precip(ds, map=map)
         fig,ax=self._generate_figure(fig=fig,ax=ax,map=map)
@@ -355,8 +357,12 @@ class WeatherMap():
                          levels=self.levels["SFC_FCT"]["level2"], colors="k", linewidths=self.boldlinewidth)
         ax.clabel(cs, cs.levels[::2])
         ax.clabel(cs2, self.levels["SFC_FCT"]["level3"])
+        if ds_prev_precip is None:
+            precip=ds["precip"]
+        else:
+            precip=ds["precip"] - ds_prev_precip
         # 等降水量線
-        cs3 = ax.contourf(ds["lon"], ds["lat"], ds["precip"], transform=ccrs.PlateCarree(),
+        cs3 = ax.contourf(ds["lon"], ds["lat"], precip, transform=ccrs.PlateCarree(),
                           levels=[1, 10, 20, 30, 40, 50], extend="max", linestyles="dashed", cmap=cmap, alpha=alpha, linewidths=self.linewidth)
         # 降水量の極大点に数値を記入する
         self._plot_peak(ax, df_peak)
@@ -419,7 +425,7 @@ class WeatherMap():
         fig,ax=self._generate_figure(fig=fig,ax=ax,map=map)
         # 850hPa風矢羽根プロット
         ax.barbs(ds["lon"], ds["lat"], ds["u"].sel(level=850).values/0.51, ds["v"].sel(
-            level=850).values/0.51, length=6, regrid_shape=12, linewidth=self.barbwidth ,transform=ccrs.PlateCarree())
+            level=850).values/0.51, length=6, regrid_shape=18, linewidth=self.barbwidth ,transform=ccrs.PlateCarree())
         # 850hPa相当温位線
         theta_levels = np.arange(300-90, 300+90, 3)
         cs4 = ax.contour(ds["lon"], ds["lat"], ds["theta_w"],
