@@ -1,6 +1,4 @@
-import cartopy.crs as ccrs
 from scipy.ndimage.filters import maximum_filter, minimum_filter
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -11,6 +9,7 @@ from metpy.units import units
 import json
 import pathlib
 import sys
+import re
 import scipy.ndimage as ndimage
 sys.path.append(pathlib.Path(__file__).resolve().parent)
 import custom_colormap
@@ -45,7 +44,7 @@ class GSMGlobal():
         self.PLEV_CONFIG = config["GSM"]["PLEV"]
         self.plevels = config["GSM"]["PLEVELS"]
 
-    def read_sfc(self, file, product_type="ANAL", crip="Asia",timestep=[0], prev_precip:xr.DataArray=None):
+    def read_sfc(self, file, product_type="ANAL", crip="Asia",timestep=[0], last_prev_precip=0):
         """
 
         Parameters
@@ -59,37 +58,66 @@ class GSMGlobal():
             else timestampe=[1,2,3....]
         prev_precip: xr.DataArray
         """
+        fdcode=re.findall("FD\d{4}",file)[0]
         gsm = pygrib.open(file)
         param_names = list(self.SFC_CONFIG.keys())
         if product_type == "ANAL":
             param_names.remove("precip")
             timestep=[0]
         dslist=[]
-        for t in timestep:
+        selected_dict={}
+        #先にgrib2の検索はしておく
+        for key in param_names:
+            namekey = self.SFC_CONFIG[key]["namekey"]
+            name = self.SFC_CONFIG[key]["name"]            
+            if namekey == "name":
+                tmp = gsm.select(name=name)
+            elif namekey == "parameterName":
+                tmp = gsm.select(parameterName=name)         
+            selected_dict[key]=tmp
+        for it,t in enumerate(timestep):
             data={}
             for key in param_names:
-                namekey = self.SFC_CONFIG[key]["namekey"]
-                name = self.SFC_CONFIG[key]["name"]
-                if namekey == "name":
-                    dat = gsm.select(name=name)[t]
-                elif namekey == "parameterName":
-                    dat = gsm.select(parameterName=name)[t]
-                data[key] = (["lat", "lon"], dat.values,
+                dat=selected_dict[key][t]
+                val=dat.values[np.newaxis,:,:]
+                if key=="T2m":
+                    time=np.datetime64(dat.validDate)
+                #降水量データのときのみ複数タイムステップの処理のとき、前タイムステップとの差分をとるようにする
+                if key=="precip":#ANALのときはprecipはkeyから外されているので無視
+                    if it==0:
+                        if fdcode=="FD0000":
+                            #FD0000の1時間目前は降水量をキャッシュさせるだけ
+                            prev_precip=val
+                        elif fdcode != "FD0000":
+                            #それ以外は前のファイルの末尾の降水量データとの差分をとる
+                            prev_precip=np.copy(val)
+                            val=val-last_prev_precip
+                            val[val<0]=0
+                    else:
+                        #それ以外のときは差分をとって,負になったら０に戻す
+                        new_prev_precip=np.copy(val)
+                        val=val - prev_precip
+                        val[val<0]=0
+                        prev_precip=new_prev_precip
+
+                data[key] = (["time","lat", "lon"], val,
                              {"title": self.SFC_CONFIG[key]["name"],
                               "units": self.SFC_CONFIG[key]["units"]})
-                lat, lon = dat.latlons()
-                lat = lat[:, 0]
-                lon = lon[0, :]
-                coords = {
-                    "lat": (("lat", lat, {"units": "degrees_north"})),
-                    "lon": (("lon", lon, {"units": "degrees_east"}))
-                }
-                ds = xr.Dataset(data, coords)
-                if type(crip) is tuple:
-                    lon1, lon2, lat1, lat2 = crip
-                    ds = ds.sel(lon=slice(lon1, lon2), lat=slice(lat1, lat2))
-                elif crip == "Asia":
-                    ds = ds.sel(lat=slice(60, 10), lon=slice(100, 180))
+            #格子情報を定義する。
+            lat, lon = dat.latlons()
+            lat = lat[:, 0]
+            lon = lon[0, :]
+            coords = {
+                "time":(("time",[time])),
+                "lat": (("lat", lat, {"units": "degrees_north"})),
+                "lon": (("lon", lon, {"units": "degrees_east"}))
+            }
+            ds = xr.Dataset(data, coords)
+            if type(crip) is tuple:
+                lon1, lon2, lat1, lat2 = crip
+                ds = ds.sel(lon=slice(lon1, lon2), lat=slice(lat1, lat2))
+            elif crip == "Asia":
+                ds = ds.sel(lat=slice(60, 10), lon=slice(100, 180))
             dslist.append(ds)
             del data
         gsm.close()
@@ -97,10 +125,8 @@ class GSMGlobal():
             dsout=dslist[0]
         else:
             dsout=xr.concat(dslist, dim="time")
-        if prev_precip is not None:
-            dsout["precip"]=dsout["precip"] - prev_precip
         del dslist
-        return dsout
+        return dsout, prev_precip
 
     def read_plev(self, file, crip="Asia", timestep=[0]):
         gsm = pygrib.open(file)
@@ -122,14 +148,16 @@ class GSMGlobal():
                     elif namekey == "parameterName":
                         dat = gsm.select(parameterName=name, level=lev)[0]
                     dat_list.append(dat.values)
-                data[key] = (["level", "lat", "lon"], np.array(dat_list),
+                data[key] = (["time","level", "lat", "lon"], np.array(dat_list)[np.newaxis,:,:,:],
                              {"title": self.PLEV_CONFIG[key]["name"],
                               "units": self.PLEV_CONFIG[key]["units"]})
                 del dat_list
             lat, lon = dat.latlons()
             lat = lat[:, 0]
             lon = lon[0, :]
+            time=np.datetime64(dat.validDate)
             coords = {
+                "time":[time],
                 "level": (("level", self.plevels, {"units": "hPa"})),
                 "lat": (("lat", lat, {"units": "degrees_north"})),
                 "lon": (("lon", lon, {"units": "degrees_east"}))
