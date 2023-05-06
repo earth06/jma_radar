@@ -44,6 +44,36 @@ class GSMGlobal():
         self.PLEV_CONFIG = config["GSM"]["PLEV"]
         self.plevels = config["GSM"]["PLEVELS"]
 
+    def set_timestep_dict(self,level="sfc",gsmtype="jp_high"):
+        """_summary_
+
+        Args:
+            level (str, optional):{sfc, plev}. Defaults to "sfc".
+            gsmtype (str, optional): {jp,jp_high,gl,gl_high}. Defaults to "jp_high".
+        """
+        self.timestep_dict_all={
+            "sfc":{
+                "jp":{
+                    "FD000-0312":list(range(1,85)),
+                    "FD0315-0512":list(range(0,16)),
+                    "FD0515-1100":list(range(0,44))
+                },
+                "jp_high":{
+                    "FD0000-0100" :list(range(1,24)),
+                    "FD0101-0200" :list(range(24)),
+                    "FD0201-0300" :list(range(24)),
+                    "FD0301-0400" :list(range(24)),
+                    "FD0401-0500" :list(range(24)),
+                    "FD0501-0512" :list(range(12)),
+                    "FD0515-0700" :list(range(12)),
+                    "FD0703-0900" :list(range(16)),
+                    "FD0903-1100" :list(range(16)),
+                },
+            }
+
+        }
+        self.timestep_dict=self.timestep_dict_all[level][gsmtype]
+
     def read_sfc(self, file, product_type="ANAL", crip="Asia",timestep=[0], last_prev_precip=0):
         """
 
@@ -75,6 +105,7 @@ class GSMGlobal():
             elif namekey == "parameterName":
                 tmp = gsm.select(parameterName=name)         
             selected_dict[key]=tmp
+        prev_precip=last_prev_precip
         for it,t in enumerate(timestep):
             data={}
             for key in param_names:
@@ -127,11 +158,25 @@ class GSMGlobal():
             dsout=xr.concat(dslist, dim="time")
         del dslist
         return dsout, prev_precip
+    
+    def read_sfc_all(self, files):
+        ds_list=[]
+        for i,f in enumerate(files):
+            fdcode=re.findall("FD\d{4}-\d{4}",f)[0]
+            if i==0:
+                dstmp,prev_precip=self.read_sfc(f,product_type="FCT",timestep=self.timestep_dict[fdcode])
+            else:
+                dstmp,prev_precip=self.read_sfc(f,product_type="FCT",timestep=self.timestep_dict[fdcode],last_prev_precip=prev_precip)
+            ds_list.append(dstmp) 
+        dsall=xr.concat(ds_list,dim="time")
+        del ds_list
+        return dsall    
 
     def read_plev(self, file, crip="Asia", timestep=[0]):
         gsm = pygrib.open(file)
         param_names = list(self.PLEV_CONFIG.keys())
         dslist=[]
+
         for t in timestep:
             data={}
             for key in param_names:
@@ -177,3 +222,10 @@ class GSMGlobal():
             dsout=xr.concat(dslist,dim="time")
         del  dslist
         return dsout
+    
+    def to_netcdf(self,ds:xr.Dataset,filename:str,compression=True):
+        encoding={}
+        for param in ds.data_vars:
+            encoding[param]={"zlib":True, "complevel":5, "dtype":"float32"}
+        ds.to_netcdf(filename, encoding=encoding)
+        return 0

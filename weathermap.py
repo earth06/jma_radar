@@ -123,7 +123,7 @@ class WeatherMap():
         # 湿り域
         cs4 = ax.contourf(ds["lon"], ds["lat"], ds["T-Tw"].sel(level=lev),
                           transform=ccrs.PlateCarree(), levels=[-273.15, 3], hatches=["..."], colors=None, alpha=0,
-                          linewidths=self.linewidth)
+                          )
         ax.set_title("850hPa")
         # 矢羽根プロット
         ax.barbs(ds["lon"], ds["lat"], ds["u"].sel(level=lev).values/0.51, ds["v"].sel(
@@ -151,7 +151,7 @@ class WeatherMap():
         # 湿り域
         cs4 = ax.contourf(ds["lon"], ds["lat"], ds["T-Tw"].sel(level=lev),
                           transform=ccrs.PlateCarree(), levels=[-273.15, 3], hatches=["..."]
-                          , colors=None, alpha=0, linewidths=self.linewidth)
+                          , colors=None, alpha=0)
         ax.set_title("700hPa")
         # 矢羽根プロット
         ax.barbs(ds["lon"], ds["lat"], ds["u"].sel(level=lev).values/0.51, ds["v"].sel(
@@ -347,25 +347,24 @@ class WeatherMap():
             ax.text(lon, lat, "\n"+label, verticalalignment="center",
                     horizontalalignment="center", transform=ccrs.PlateCarree(), fontsize=self.peak_fontsize)
 
-    def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8,ds_prev_precip=None ,ax=None, fig=None, map="EastAsia"):
-        if ds_prev_precip is None:
-            precip=ds["precip"]
-        else:
-            print("calc differential precip")
-            precip=ds["precip"] - ds_prev_precip
+    def plot_surface_ps_wind_precip(self, ds, cmap=jmacmap, alpha=0.8 ,ax=None, fig=None, map="EastAsia"):
+        precip=ds["precip"]
         # 極大値を見つける
         df_peak = self._detect_peaks_precip(precip, map=map)
         fig,ax=self._generate_figure(fig=fig,ax=ax,map=map)
-        cs = ax.contour(ds["lon"], ds["lat"], ds["pmsl"]*1e-2, transform=ccrs.PlateCarree(),
-                        levels=self.levels["SFC_FCT"]["level1"], colors="k", linewidths=self.linewidth)
-        cs2 = ax.contour(ds["lon"], ds["lat"], ds["pmsl"]*1e-2, transform=ccrs.PlateCarree(),
-                         levels=self.levels["SFC_FCT"]["level2"], colors="k", linewidths=self.boldlinewidth)
-        ax.clabel(cs, cs.levels[::2])
-        ax.clabel(cs2, self.levels["SFC_FCT"]["level3"])
+        try:
+            cs = ax.contour(ds["lon"], ds["lat"], ds["pmsl"]*1e-2, transform=ccrs.PlateCarree(),
+                            levels=self.levels["SFC_FCT"]["level1"], colors="k", linewidths=self.linewidth)
+            cs2 = ax.contour(ds["lon"], ds["lat"], ds["pmsl"]*1e-2, transform=ccrs.PlateCarree(),
+                            levels=self.levels["SFC_FCT"]["level2"], colors="k", linewidths=self.boldlinewidth)
+            ax.clabel(cs, cs.levels[::2])
+            ax.clabel(cs2, self.levels["SFC_FCT"]["level3"])
+        except:
+            pass
 
         # 等降水量線
         cs3 = ax.contourf(ds["lon"], ds["lat"], precip, transform=ccrs.PlateCarree(),
-                          levels=[1, 10, 20, 30, 40, 50], extend="max", linestyles="dashed", cmap=cmap, alpha=alpha, linewidths=self.linewidth)
+                          levels=[1, 10, 20, 30, 40, 50], extend="max", linestyles="dashed", cmap=cmap, alpha=alpha)
         # 降水量の極大点に数値を記入する
         self._plot_peak(ax, df_peak)
 
@@ -388,7 +387,7 @@ class WeatherMap():
         hatches = ["|||"]*6+[None]*7
         linestyles = ["dashed"]*6 + ["solid"] + ["dashed"]*6
         cs4 = ax.contourf(ds["lon"], ds["lat"], ds["vp"].sel(level=700), transform=ccrs.PlateCarree(), colors="none"  # cmap="bwr"
-                          , levels=np.arange(-120, 121, 20), hatches=hatches, linestyles=linestyles, linewidths=self.linewidth)
+                          , levels=np.arange(-120, 121, 20), hatches=hatches, linestyles=linestyles)
         cs4_2 = ax.contour(ds["lon"], ds["lat"], ds["vp"].sel(level=700), transform=ccrs.PlateCarree(), colors="k"  # cmap="bwr"
                            , levels=np.arange(-120, 121, 20), linestyles=linestyles, linewidths=self.linewidth)
         # 鉛直p速度の極大値
