@@ -21,7 +21,7 @@ class GSMGlobal():
     @classmethod
     def add_dew_point_depreession_equ_potential_T(self, ds):
         dew_point = mcalc.dewpoint_from_relative_humidity(ds["T"], ds["rh"])
-        ds["Tw"] = (["level", "lat", "lon"], dew_point.values+273.15)
+        ds["Tw"] = (["time","level", "lat", "lon"], dew_point.values+273.15)
         ds["Tw"].attrs["units"] = "kelvin"
         ds["T-Tw"] = ds["T"] - ds["Tw"]
         ds["theta_w"] = mcalc.equivalent_potential_temperature(
