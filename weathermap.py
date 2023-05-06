@@ -299,7 +299,7 @@ class WeatherMap():
         ds=dsinput.sel(lon=slice(lon1,lon2),lat=slice(lat2,lat1))
         lon = ds["lon"].values
         lat = ds["lat"].values
-        precip = ds["precip"].values
+        precip = ds.values
         local_max = maximum_filter(precip, footprint=np.ones(
             (filter_size, filter_size)), mode='constant')
         detected_peaks = np.ma.array(precip, mask=~(precip == local_max))
@@ -352,7 +352,7 @@ class WeatherMap():
             precip=ds["precip"]
         else:
             print("calc differential precip")
-            precip=ds["precip"].values - ds_prev_precip.values
+            precip=ds["precip"] - ds_prev_precip
         # 極大値を見つける
         df_peak = self._detect_peaks_precip(precip, map=map)
         fig,ax=self._generate_figure(fig=fig,ax=ax,map=map)
