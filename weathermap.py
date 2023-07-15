@@ -406,7 +406,7 @@ class WeatherMap():
         # 500hPa等温線
         Tlevels = np.arange(-60, 40, 3)
         cs3 = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(
-            level=500)-273.15, transform=ccrs.PlateCarree(), colors="k", linewidths=self.boldlinewidth, linestyles="solid", levels=Tlevels)
+            level=500).values-273.15, transform=ccrs.PlateCarree(), colors="k", linewidths=self.boldlinewidth, linestyles="solid", levels=Tlevels)
         ax.clabel(cs3, cs3.levels[::2])
         # 700hPa湿数
         x = [0, 3, 6, 12, 18, 24, 30, 36, 42, 48,
