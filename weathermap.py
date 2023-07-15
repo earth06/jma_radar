@@ -414,7 +414,7 @@ class WeatherMap():
         h = ["|||"]*1+[None]*17
         l = ["dashed"]*2+["solid"]*16
         cs4 = ax.contourf(ds["lon"], ds["lat"], ds["T-Tw"].sel(level=700),
-                          transform=ccrs.PlateCarree(), colors="none", levels=x, hatches=h, linewidths=self.linewidth)
+                          transform=ccrs.PlateCarree(), colors="none", levels=x, hatches=h)
 
         cs4_2 = ax.contour(ds["lon"], ds["lat"], ds["T-Tw"].sel(level=700),
                            transform=ccrs.PlateCarree(), colors="k", levels=x, linestyles=l, linewidths=self.linewidth)
