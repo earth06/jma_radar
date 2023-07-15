@@ -3,3 +3,4 @@ __pycache__/
 TempDomainOffLine
 **/.ipynb_checkpoints/
 sample/generate_all_weathermap.ipynb
+sample/make_map_for_frontline_analysis.ipynb

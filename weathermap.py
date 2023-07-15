@@ -144,7 +144,7 @@ class WeatherMap():
 
         # 等温線
         baseT = 0
-        cs3 = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(level=lev)-273.15, transform=ccrs.PlateCarree(), levels=self.Tlevels["cool"], colors="k",
+        cs3 = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(level=lev).values - 273.15, transform=ccrs.PlateCarree(), levels=self.Tlevels["cool"], colors="k",
                          linestyles="dashed", linewidths=self.boldlinewidth)
         ax.clabel(cs3, cs3.levels)
 
@@ -171,7 +171,7 @@ class WeatherMap():
         ax.clabel(cs2, [5100, 5700, 6300])
         # 等温線
         baseT = 0
-        cs3 = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(level=lev)-273.15, transform=ccrs.PlateCarree(), levels=self.Tlevels[season], colors="k",
+        cs3 = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(level=lev).values - 273.15, transform=ccrs.PlateCarree(), levels=self.Tlevels[season], colors="k",
                          linestyles="dashed", linewidths=self.linewidth)
         ax.clabel(cs3, cs3.levels)
         # 矢羽根プロット
@@ -379,7 +379,7 @@ class WeatherMap():
     def plot_850hPa_T_wind_700hPa_omega(self, ds, cmap="none", ax=None, fig=None, map="EastAsia"):
         fig,ax=self._generate_figure(fig=fig,ax=ax,map=map)
         # 850hPa気温
-        cs = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(level=850)-273.15, transform=ccrs.PlateCarree(),
+        cs = ax.contour(ds["lon"], ds["lat"], ds["T"].sel(level=850).values-273.15, transform=ccrs.PlateCarree(),
                         colors="k", levels=self.levels["850hPa_w_T_750hPa_omega"]["level1"], linewidths=self.boldlinewidth)
         ax.clabel(cs, cs.levels[::2])
 
