@@ -80,7 +80,7 @@ class JMA_Radar:
             scale_factor = int(buf5[16])
             RR = np.zeros(level, dtype="float32")
             for m in range(level):
-                RR[m] = float(decode_int16(buf5, 15 + 2 * m)) / (10.0**scale_factor)
+                RR[m] = float(decode_int16(buf5, 15 + 2 * (m+1))) / (10.0**scale_factor)
             # section6
             buf6 = np.frombuffer(f.read(6), dtype="u1")
             # section7
