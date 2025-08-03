@@ -9,14 +9,34 @@
 ## Demo
 
 ```python
-ds=JMA_Radar.read_radar("Z__C_RJTD_YYYYMMDDhhmmss_RDR_JMAGPV_Ggis1km_Prr10lv_ANAL_grib2.bin").to_xarray()
+import sys
+sys.path.append("../")
+import cartopy.crs as ccrs
+import numpy as np
+import matplotlib.pyplot as plt
+
+from jma_radar import JMA_Radar
+import custom_colormap
+
+# decode grib2 
+file = "./sampledata/Z__C_RJTD_20191011211000_RDR_JMAGPV_Ggis1km_Prr10lv_ANAL_grib2.bin"
+ds=JMA_Radar.read_file(file).to_xarray()
+
+
+# setup custom color map
+levels=custom_colormap.get_jmalevels()
+jmacmap=custom_colormap.get_jmacmap2()
+norm=custom_colormap.get_norm(levels)
+
+# plot
 fig=plt.figure(figsize=(9,9),facecolor="w")
 ax=fig.add_subplot(1,1,1,projection=ccrs.AzimuthalEquidistant(central_longitude=140))
 ax.coastlines()
 ax.gridlines(draw_labels=True)
-cf=ax.pcolormesh(ds["lon"],ds["lat"],ds["rr"].isel(time=0),transform=ccrs.PlateCarree())
-fig.colorbar(cf,orientation="horizontal",extend="max",shrink=0.8)
+cf=ax.pcolormesh(ds["lon"],ds["lat"],ds["rr"].isel(time=0),transform=ccrs.PlateCarree(), norm=norm, cmap=jmacmap)
+fig.colorbar(cf,orientation="horizontal",shrink=0.8)
 ax.set_extent([128,145,30,45])
+
 ```
 
 
