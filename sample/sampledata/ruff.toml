@@ -1,0 +1,55 @@
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "venv",
+]
+
+indent-width = 4
+line-length = 120
+
+target-version = "py311"
+
+[lint]
+ignore = ["D", "ANN", "ERA001", "T201", "FBT003", "G004", "PLR0913", "RUF100", "E741"]
+select = ["ALL"]
+
+# print (T201): printがあると警告を出す
+# commented-out-code (ERA001)
+# flake8-annotations (ANN): アノテーション全般
+# pydocstyle (D): docstring 全般
+# boolean-positional-value-in-call (FBT003)
+# logging-f-string (G004)
+# too-many-arguments (PLR0913)
+# unused-noqa (RUF100)
+# ambiguous-variable-name (E741)
+
+fixable = ["ALL"]
+unfixable = ["F401"]
+
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[format]
+indent-style = "space"
+quote-style = "double"
+
+skip-magic-trailing-comma = false # list等の最後の要素の後のコンマを削除しない。
+
+line-ending = "lf" # "auto" | "lf" | "cr-lf" | "native"
