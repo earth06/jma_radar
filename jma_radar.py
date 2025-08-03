@@ -88,9 +88,6 @@ class JMA_Radar:
             length = decode_int32(buf7, 0) - 5
             data = np.frombuffer(f.read(length), dtype=">u1")
             aa = 2**Vbit - 1 - VMAX
-            import pdb
-
-            pdb.set_trace()
             rrain = unpack_runlength(data, nx, ny, length, aa, VMAX, RR)
             rrain = rrain.reshape((ny, nx))[::-1, :]
             rrain[rrain < 0] = np.nan
